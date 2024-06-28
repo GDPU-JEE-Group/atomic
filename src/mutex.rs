@@ -6,16 +6,16 @@ pub struct Mutex {
 }
 
 impl Mutex {
-    fn new()->Mutex{
+    pub fn new()->Mutex{
         Mutex { locked: AtomicBool::new(false) }
     }
 
-    fn lock(&self){
+    pub fn lock(&self){
         while self.locked.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed).is_err() {
         }
     }
 
-    fn unlock(&self){
+    pub fn unlock(&self){
         self.locked.store(false, Ordering::Release);
     }
 
@@ -36,8 +36,8 @@ impl Mutex {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use std::{sync::Arc, thread};
+    use super::Mutex;
+    use std::{sync::{atomic::Ordering, Arc}, thread};
 
     #[test]
     fn test_mutex() {

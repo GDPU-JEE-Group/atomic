@@ -4,3 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "atomic"
+path = "src/main.rs"
