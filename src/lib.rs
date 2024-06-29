@@ -1,9 +1,11 @@
 mod mutex;
 mod condvar;
 mod semaphore;
+mod spinlock;
 
 pub use mutex::Mutex;
-pub use condvar::Condvar;
+pub use spinlock::SpinLock;
+pub use condvar::CondVar;
 pub use semaphore::Semaphore;
 pub fn add(left: usize, right: usize) -> usize {
     left + right

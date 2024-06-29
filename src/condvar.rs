@@ -1,51 +1,41 @@
-// src/condvar.rs
-
-use std::{sync::atomic::{AtomicBool, Ordering}};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::thread;
-use crate::mutex::{Mutex};
+use crate::spinlock::SpinLock;
 
-pub struct Condvar {
-    // your code here
-    //TODO 条件变量 为了防止群起群停
-    flag:AtomicBool,
-    mutex: Mutex
+
+pub struct CondVar {
+    flag: AtomicBool,
+    waiters: AtomicUsize,
 }
 
-impl Condvar {
-    pub fn new()->Condvar{
-        Condvar{
+impl CondVar {
+    pub fn new() -> Self {
+        CondVar {
             flag: AtomicBool::new(false),
-            mutex: Mutex::new(),
+            waiters: AtomicUsize::new(0),
         }
     }
 
-    pub fn wait(&self){
-        let guard=self.mutex.lock();//这样当_guard结束时锁会被释放
+    pub fn wait(&self, lock: &SpinLock) {
+        self.waiters.fetch_add(1, Ordering::SeqCst);
         while !self.flag.load(Ordering::Acquire) {
-            self.mutex.unlock();
-            thread::park();
-            let guard=self.mutex.lock();
+            lock.unlock(); // 释放锁
+            thread::yield_now(); // 让出线程时间片
+            lock.lock(); // 重新获取锁
         }
+        self.waiters.fetch_sub(1, Ordering::SeqCst);
     }
 
-    pub fn notify_one(&self){
-        let _guard=self.mutex.lock();
+    pub fn notify_one(&self) {
         self.flag.store(true, Ordering::Release);
-        let handle=thread::current();
-
-        // 唤醒等待的线程
-        // 找到需要唤醒的线程并调用 unpark
-        handle.unpark();
+        // 暂时没有更好的裸机环境下的唤醒机制，只能依赖轮询和线程调度
     }
 
-    //TODO
-//     这个条件变量的实现有一些问题需要注意：
-
-//     竞态条件：在wait函数中，你先解锁了互斥锁，然后调用了thread::park。这之间存在一个竞态条件，如果在这个时间窗口内notify_one被调用，那么通知就会丢失，因为线程还没有进入park状态。
-//     唤醒的线程：在notify_one函数中，你唤醒的是当前线程，而不是等待在条件变量上的线程。你应该保存等待线程的句柄，并在notify_one中唤醒它。
-//     互斥锁的使用：在wait函数中，你在循环中多次获取和释放互斥锁，这可能会导致性能问题。你应该在整个等待过程中保持互斥锁的锁定状态。
-//     条件变量的复用：你的实现中，一旦条件变量被通知，flag就被设置为true，并且再也不能被重置为false。这意味着这个条件变量不能被复用。你可能需要添加一个reset方法来重置flag的状态。
+    pub fn reset(&self) {
+        self.flag.store(false, Ordering::Release);
+    }
 }
+
 
 //总结
 // 1. 获取和通知操作都被锁了
