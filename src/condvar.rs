@@ -23,6 +23,9 @@ impl Condvar {
         let _guard=self.mutex.lock();
         while !self.flag.load(Ordering::Acquire) {
             thread::yield_now();
+            // 在你的原始实现中，thread::yield_now() 只是简单地将当前线程的时间片让给其他线程。
+            // 这个操作本身并不能确保当前线程在条件满足后立即被唤醒，尤其是在高负载的情况下，
+            // 操作系统可能会长时间不调度当前线程，导致等待时间变长。
         }
     }
 
