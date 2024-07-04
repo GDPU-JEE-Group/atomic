@@ -1,22 +1,48 @@
-name: Rust
-
+name: Package and release
+# learn from https://github.com/tickbh/wmproxy/blob/main/.github/workflows/ci.yml
 on:
   push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
 
 env:
-  CARGO_TERM_COLOR: always
+  TZ: Asia/Shanghai
+  BINARY_NAME: atomicserver-amd64-linux
 
 jobs:
-  build:
-
+  create_release:
+    name: Create Release
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+      - uses: actions/checkout@v4
+
+      - name: Debug Info
+        run: |
+          echo "GITHUB_REF: ${{ github.ref }}"
+          echo "GITHUB_REF_NAME: ${{ github.ref_name }}"
+          echo "GITHUB_SHA: ${{ github.sha }}"
+          echo "GITHUB_REPOSITORY: ${{ github.repository }}"
+          echo "==========================="
+          echo "secrets.AGITHUB_TOKEN: ${{ secrets.AGITHUB_TOKEN }}"
+          echo "github.ref : ${{ github.ref }}"
+          echo "github.ref_name: ${{github.ref_name}}"
+          echo "---"
+          echo "${{env.BINARY_NAME}}"
+
+      - name: Generate SHA-256
+        run: |
+          cargo build --release --verbose
+          mv target/release/atomic target/release/${{env.BINARY_NAME}}
+          pwd
+          tree -L 3
+          shasum -a 256 target/release/${{env.BINARY_NAME}} | cut -d ' ' -f 1 > target/release/${{env.BINARY_NAME}}.sha256
+
+      - name: Release binary and SHA-256 checksum to GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            target/release/${{env.BINARY_NAME}}
+            target/release/${{env.BINARY_NAME}}.sha256

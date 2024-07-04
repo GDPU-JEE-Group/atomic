@@ -85,3 +85,6 @@ fn handle_connection(mut stream:TcpStream){
         .collect();
     println!("Request: {:#?}",http_request);
 }
+// 大家可能会比较好奇，该如何判断客户端发来的 HTTP 数据是否读取完成，
+// 答案就在于客户端会在请求数据的结尾附上两个换行符，当我们检测到某一行字符串为空时，
+// 就意味着请求数据已经传输完毕，可以 collect 了。
