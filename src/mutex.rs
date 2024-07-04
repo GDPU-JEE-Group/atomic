@@ -57,7 +57,7 @@ impl<'a, T> std::ops::DerefMut for MutexGuard<'a, T> {
 }
 
 
-fn test() {
+fn _test() {
     let mutex = Mutex::new(0);
     let mutex = std::sync::Arc::new(mutex);
 

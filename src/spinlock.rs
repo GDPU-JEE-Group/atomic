@@ -25,7 +25,7 @@ impl SpinLock {
         self.lock.store(false, Ordering::Release);
     }
 }
-fn test() {
+fn _test() {
     let spinlock = Arc::new(SpinLock::new());
 
     let spinlock_clone = Arc::clone(&spinlock);

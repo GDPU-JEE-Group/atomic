@@ -37,7 +37,7 @@ impl Semaphore {
     }
 }
 
-fn test() {
+fn _test() {
     let semaphore = Semaphore::new(1);
     let semaphore_arc = Arc::new(semaphore);
 
