@@ -9,5 +9,9 @@ edition = "2021"
 path = "src/lib.rs"
 
 [[bin]]
-name = "atomic"
+name = "server"
 path = "src/main.rs"
+
+[[bin]]
+name = "client"
+path = "learn/web5_1client.rs"

@@ -10,7 +10,7 @@ permissions:
 
 env:
   TZ: Asia/Shanghai
-  BINARY_NAME: atomicserver-amd64-linux
+  TARGET_TAR: atomic-amd64-linux.tar
 
 jobs:
   create_release:
@@ -30,19 +30,16 @@ jobs:
           echo "github.ref : ${{ github.ref }}"
           echo "github.ref_name: ${{github.ref_name}}"
           echo "---"
-          echo "${{env.BINARY_NAME}}"
+          echo "${{env.TARGET_TAR}}"
 
       - name: Generate SHA-256
         run: |
-          cargo build --release --verbose
-          mv target/release/atomic target/release/${{env.BINARY_NAME}}
-          pwd
-          tree -L 3
-          shasum -a 256 target/release/${{env.BINARY_NAME}} | cut -d ' ' -f 1 > target/release/${{env.BINARY_NAME}}.sha256
+          chmod +x build.sh
+          ./build.sh
 
       - name: Release binary and SHA-256 checksum to GitHub
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            target/release/${{env.BINARY_NAME}}
-            target/release/${{env.BINARY_NAME}}.sha256
+            ./${{env.TARGET_TAR}}
+            ./${{env.TARGET_TAR}}.sha256

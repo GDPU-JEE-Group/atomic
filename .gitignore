@@ -1,4 +1,6 @@
 /target
 
 *.out
+*.tar
 tmp
+atomic-amd64-linux.tar.sha256
