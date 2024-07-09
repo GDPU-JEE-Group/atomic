@@ -15,7 +15,7 @@ package_project(){
     rm -rf target/atomic-amd64-linux ./atomic-amd64-linux.tar ./atomic-amd64-linux.tar.sha256
 
     # compile
-    run_cmd export RUSTFLAGS="-C target-feature=+crt-static"
+    # run_cmd export RUSTFLAGS="-C target-feature=+crt-static"
     run_cmd cargo build --release --verbose
 
     # tar and package
