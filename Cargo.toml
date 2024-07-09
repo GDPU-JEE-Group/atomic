@@ -22,5 +22,5 @@ path = "src/client.rs"
 panic = "abort"
 lto = true
 
-[build]
-rustflags = ["-C", "target-feature=+crt-static"]
+# [build]
+# rustflags = ["-C", "target-feature=+crt-static"]
