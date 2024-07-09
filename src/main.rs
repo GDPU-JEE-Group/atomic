@@ -1,12 +1,13 @@
 use std::fs;
 use std::io::BufRead;
 use std::io::BufReader;
-use std::io::Read;
 use std::io::Write;
 use std::sync::Arc;
 
 // src/main.rs
 use atomic::Mutex;
+mod config;
+use config::read_config;
 
 use std::net::TcpListener;
 use std::net::TcpStream;
@@ -28,40 +29,12 @@ fn _test(){
     x.unlock();
 }
 
-fn _clinet(){
-    match TcpStream::connect("127.0.0.1:8090") {
-        Ok(mut _stream)=>{
-            println!("成功连接服务器127.0.0.1:8090");
-
-            // request
-            let request = "GET / HTTP/1.1\r\n\
-                Host: 127.0.0.1:8090\r\n\
-                User-Agent: curl/7.68.0\r\n\
-                Accept: */*\r\n\
-                \r\n";
-            _stream.write_all(request.as_bytes()).unwrap();
-
-            // read response
-            let mut buf_reader = BufReader::new(&mut _stream);
-            let mut response = String::new();
-            buf_reader.read_to_string(&mut response).unwrap();
-
-            // print response
-            let mut part = response.splitn(2,"\r\n\r\n");
-            let headers=part.next().unwrap_or("");
-            let body=part.next().unwrap_or("");
-            println!("Response.Headers: {}", headers);
-            println!("Response.Body: \n{}", body);
-        }
-        Err(e)=>{
-            println!("连接失败 127.0.0.1:8090 {}",e);
-        }
-    }
-}
-
 fn _server(){
-    println!("获取一个绑定127.0.0.1:8090的tcp监听者");
-    let listener = TcpListener::bind("127.0.0.1:8090").unwrap();
+    // 读取配置文件
+    let config=read_config("config/app_config.toml");
+
+    println!("获取一个绑定{}:{}的tcp监听者",config.server.ip,config.server.port);
+    let listener = TcpListener::bind(format!("{}:{}",config.server.ip,config.server.port)).unwrap();
     // unwrap 的使用是因为 bind 返回 Result<T,E>，毕竟监听是有可能报错的
 
     println!("开始监听循环，等待传入连接");
@@ -109,7 +82,7 @@ fn _v2_handle_connection(mut stream:TcpStream){
     println!("Request: {:#?}",http_request);
 }
 
-fn handle_connection(mut stream:TcpStream){
+fn _v3_handle_connection(mut stream:TcpStream){
     //request
     let buf_reader=BufReader::new(&mut stream);
     let http_request:Vec<_>=buf_reader
@@ -122,6 +95,36 @@ fn handle_connection(mut stream:TcpStream){
     //response
     let status_line="HTTP/1.1 200 OK";
     let contents =fs::read_to_string("res/index.html").unwrap();
+    let length =contents.len();
+
+    let response= format!(
+        "{status_line}\r\n\
+        Content-Length: {length}\r\n\
+        \r\n\
+        {contents}"
+    );
+    stream.write_all(response.as_bytes()).unwrap();
+
+}
+
+fn handle_connection(mut stream:TcpStream){
+    //request
+    let buf_reader=BufReader::new(&mut stream);
+    let mut lines=buf_reader.lines();
+    let request_line =lines.next().unwrap().unwrap();//先读请求行
+    let (status_line,filename) = match request_line.as_str() {
+        "GET / HTTP/1.1"|"GET /index.html HTTP/1.1" =>{("HTTP/1.1 200 OK", "index.html")},
+        _=>{("HTTP/1.1 404 NOT FOUND", "404.html")}
+    };
+    //
+    let request_body:Vec<_>=lines
+        .map(|result|result.unwrap())
+        .take_while(|line|!line.is_empty())
+        .collect();
+    println!("Request: {}\n{:#?}",request_line,request_body);
+
+    //response
+    let contents =fs::read_to_string(format!("res/{}",filename)).unwrap();
     let length =contents.len();
 
     let response= format!(
