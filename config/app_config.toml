@@ -1,10 +1,12 @@
+config_filepath="-"
+
 [server]
 ip = "127.0.0.1"
 port = 8090
 
 [client]
-ip = "124.71.45.252"
-# ip = "127.0.0.1"
+# ip = "124.71.45.252"
+ip = "127.0.0.1"
 port = 8090
 
 # TODO
