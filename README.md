@@ -46,7 +46,7 @@
    运行服务器端程序：
 
    ```bash
-   ./server
+   ./server -c app_config.toml的路径
    ```
 
 4. **运行客户端**
@@ -54,7 +54,7 @@
    启动客户端以连接到服务器：
 
    ```bash
-   ./client
+   ./client -c app_config.toml的路径
    ```
 
 #### TODO
