@@ -22,7 +22,8 @@ fn main() {
     init_config(args);
     // _test();
     
-    _server();
+    // _server();
+    _test_threadpool();
     // _clinet();
 }
 
@@ -53,6 +54,28 @@ fn _server(){
         
     }
     println!("服务端结束!");
+}
+
+fn _test_threadpool(){
+    // 读取配置文件
+    let config=instance();
+
+    println!("获取一个绑定{}:{}的tcp监听者",config.server.ip,config.server.port);
+    let listener = TcpListener::bind(format!("{}:{}",config.server.ip,config.server.port)).unwrap();
+    // unwrap 的使用是因为 bind 返回 Result<T,E>，毕竟监听是有可能报错的
+
+    let pool = ThreadPool::new(4);
+
+    for stream in listener.incoming().take(2) {
+        let stream = stream.unwrap();
+
+        pool.execute(|| {
+            handle_connection(stream);
+        });
+    }
+
+    println!("Shutting down.");
+
 }
 
 fn handle_connection(mut stream:TcpStream){
@@ -161,4 +184,36 @@ fn _v3_handle_connection(mut stream:TcpStream){
     );
     stream.write_all(response.as_bytes()).unwrap();
 
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_threadPool() {
+        //mock
+        let args:Vec<String>=vec![
+            "0".to_string(),
+            "-c".to_string(),
+            "/snow/rust/atomic/config/app_config.toml".to_string(),
+        ]; 
+        // 初始化
+        init_config(args);
+
+        let config=instance();
+
+        let listener = TcpListener::bind(format!("{}:{}",config.server.ip,config.server.port)).unwrap();
+        let pool = ThreadPool::new(4);
+    
+        for stream in listener.incoming().take(2) {
+            let stream = stream.unwrap();
+    
+            pool.execute(|| {
+                handle_connection(stream);
+            });
+        }
+    
+        println!("Shutting down.");
+    }
 }
