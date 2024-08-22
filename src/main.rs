@@ -22,8 +22,8 @@ fn main() {
     init_config(args);
     // _test();
     
-    // _server();
-    _test_threadpool();
+    _server();
+    // _test_threadpool();
     // _clinet();
 }
 
@@ -35,7 +35,7 @@ fn _server(){
     let listener = TcpListener::bind(format!("{}:{}",config.server.ip,config.server.port)).unwrap();
     // unwrap 的使用是因为 bind 返回 Result<T,E>，毕竟监听是有可能报错的
 
-    let pool = ThreadPool::new(4);
+    let pool = ThreadPool::new(config.server.thread_pool_nums);
 
     println!("开始监听循环，等待传入连接");
     for stream in listener.incoming(){//阻塞式，请求只能一个一个请求

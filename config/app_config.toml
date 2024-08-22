@@ -3,7 +3,7 @@ config_filepath="-"
 [server]
 ip = "127.0.0.1"
 port = 8090
-
+thread_pool_nums = 4
 [client]
 # ip = "124.71.45.252"
 ip = "127.0.0.1"
