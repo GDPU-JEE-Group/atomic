@@ -151,9 +151,9 @@ impl Log {
 
                 println!(
                     "{} {} {} {}",
-                    entry.timestamp,
+                    entry.timestamp.green(),
                     entry.level.to_color(&entry.level.to_str()),
-                    entry.tag,
+                    entry.tag.purple(),
                     entry.message
                 );
 
