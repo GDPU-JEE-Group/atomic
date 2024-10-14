@@ -1,13 +1,12 @@
 use std::fs::{File, OpenOptions};
-use std::io::{self, Write};
-use std::path::{PathBuf, Path};
+use std::io::Write;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use chrono::{Local, Datelike};
+use chrono::Local;
 use colored::*;
 use crossbeam_channel::{bounded, Receiver, Sender};
-use std::fs;
 
 // 日志级别
 #[derive(Debug)]
