@@ -39,22 +39,14 @@ impl Properties {
     }
 
     // 初始化属性
-    pub fn init(args: Vec<String>) {
+    pub fn init(config_filepath:&str) {
         // 确保 `PROPERTIES_INSTANCE` 已初始化
         let mut properties = Properties {
             map: HashMap::new(),
         };
 
-        // 校验参数
-        if args.len() != 3 || args[1] != "-c" {
-            eprintln!("Usage: {} -c <config_file_path>", args[0]);
-            std::process::exit(1);
-        }
-
-        // 获取配置文件路径
-        let config_filepath = args[2].clone();
-
         // 更新属性
+        println!("config_filepath:{:?}",config_filepath);
         properties.update_read_file(&config_filepath);
 
         // 打印所有属性
@@ -71,10 +63,7 @@ mod tests {
 
     #[test]
     fn test_properties() {
-        let args = vec![" ".to_string(),"-c".to_string(), "config/atomic.conf".to_string()];
-
-
-        Properties::init(args);
+        Properties::init("config/atomic.conf");
         let mut props = Properties::get_instance();
         props.set("key1".to_string(), "value1".to_string());
         props.set("key2".to_string(), "value2".to_string());
@@ -87,9 +76,7 @@ mod tests {
 
     #[test]
     fn test_update_read_file() {
-        let args = vec![" ".to_string(),"-c".to_string(), "config/atomic.conf".to_string()];
-
-        Properties::init(args);
+        Properties::init("config/atomic.conf");
         let mut props = Properties::get_instance();
         props.update_read_file("test/test_update_read_file.conf"); // 使用一个测试文件路径
         assert_eq!(props.get("key1", "default_value1"), "value1");

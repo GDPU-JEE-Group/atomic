@@ -2,7 +2,6 @@ use std::env;
 
 use atomic::base::properties::Properties;
 use atomic::util::log::Log;
-use atomic::util::log::LogLevel;
 
 use std::path::PathBuf;
 use std::thread;
@@ -10,25 +9,27 @@ use std::time::Duration;
 
 fn main() {
     // Parameter processing
+    let env_args:Vec<String>=env::args().collect();
+    if env_args.len() != 3 || env_args[1] != "-c" {
+        eprintln!("Usage: {} -c <config_file_path>", env_args[0]);
+        std::process::exit(1);
+    }
 
+    Properties::init(env_args[2].as_str());
 
-    // 属性Properties初始化
-    Properties::init(env::args().collect());
-    let _context=Properties::get_instance();
-    _context.print();
+    // 初始化日志系统，设置最大日志池大小和最大缓冲区大小
+    Log::init(100, 1024, PathBuf::from("/snow/rust/atomic/log"));
 
-    println!("日志Log初始化");
-    // 日志Log初始化
-    let log_dir = PathBuf::from("log");
-        let logger = Log::new(100, 8000, log_dir);
-    
-        logger.log(LogLevel::Verbose, "sending type:0xfff40000 to /data/misc/sensor/sensor_ctrl");
-        logger.log(LogLevel::Error, "set_timerslack_ns write failed: Operation not permitted");
-        logger.log(LogLevel::Info, "chatty: uid=10096(com.tencent.tmgp.l10) UnityMain identical 17 lines");
+    // 测试不同级别的日志
+    Log::d("MainModule", "This is a debug message.");
+    Log::i("MainModule", "This is an info message.");
+    Log::w("MainModule", "This is a warning message.");
+    Log::e("MainModule", "This is an error message.");
+    Log::f("MainModule", "This is a fatal error message.");
+    Properties::get_instance().print();
     
     println!("Hello, world!");
-    thread::sleep(Duration::from_secs(6));
-
+    thread::sleep(Duration::from_secs(2));
 }
 
 
