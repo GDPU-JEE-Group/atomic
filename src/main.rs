@@ -1,11 +1,10 @@
 use std::env;
-
-use atomic::base::properties::Properties;
-use atomic::util::log::Log;
-
 use std::path::PathBuf;
 use std::thread;
 use std::time::Duration;
+
+use atomic::base::properties::Properties;
+use atomic::util::log::Log;
 
 fn main() {
     // Parameter processing
@@ -15,18 +14,26 @@ fn main() {
         std::process::exit(1);
     }
 
-    Properties::init(env_args[2].as_str());
+    let config_path=env_args[2].as_str();
+    Properties::init(config_path);
 
+    let log_path=PathBuf::from(Properties::get( "log.path", "./log"));
+    println!("log_path:{}",Properties::get( "log.path", "./log"));
+    println!("log_pathexists:{}",log_path.exists());
     // 初始化日志系统，设置最大日志池大小和最大缓冲区大小
-    Log::init(100, 1024, PathBuf::from("/snow/rust/atomic/log"));
+    Log::init(100, 1024, log_path);
 
     // 测试不同级别的日志
+    test_init();
+}
+
+pub fn test_init(){
     Log::d("MainModule", "This is a debug message.");
     Log::i("MainModule", "This is an info message.");
     Log::w("MainModule", "This is a warning message.");
     Log::e("MainModule", "This is an error message.");
     Log::f("MainModule", "This is a fatal error message.");
-    Properties::get_instance().print();
+    Properties::print();
     
     println!("Hello, world!");
     thread::sleep(Duration::from_secs(2));
