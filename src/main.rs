@@ -4,6 +4,7 @@ use std::thread;
 use std::time::Duration;
 
 use atomic::base::properties::Properties;
+use atomic::base::threadpool::ThreadPool;
 use atomic::util::log::Log;
 
 fn main() {
@@ -23,6 +24,13 @@ fn main() {
     // 初始化日志系统，设置最大日志池大小和最大缓冲区大小
     Log::init(100, 1024, log_path);
 
+    let pool=ThreadPool::new(4); 
+    for i in 0..10{
+        pool.execute(move ||{
+            sum(i);
+        });
+    }
+
     // 测试不同级别的日志
     test_init();
 }
@@ -37,6 +45,12 @@ pub fn test_init(){
     
     println!("Hello, world!");
     thread::sleep(Duration::from_secs(2));
+}
+
+fn sum(num:i32){
+    for i in 0..100{
+        println!("{}",i+num*100);
+    }
 }
 
 
