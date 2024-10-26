@@ -1,5 +1,9 @@
-use std::{collections::HashMap, io::{self, Read, Write}, net::SocketAddr};
-use mio::{event, Events, Interest, Poll, Token};
+use std::{
+    collections::HashMap,
+    io::{self, Read, Write},
+    net::SocketAddr,
+};
+use mio::{Events, Interest, Poll, Token};
 use mio::net::{TcpListener, TcpStream}; // 使用 mio 的 TcpStream
 use crate::base::properties::Properties;
 
@@ -9,11 +13,10 @@ pub fn main() -> io::Result<()> {
     only_epoll()
 }
 
-
 /* 
 仅仅用epoll，
 */
-fn only_epoll()->io::Result<()>{
+fn only_epoll() -> io::Result<()> {
     // 使用从配置中获取的 IP 和端口创建 SocketAddr
     let addr: SocketAddr = format!(
         "{}:{}",
@@ -39,7 +42,7 @@ fn only_epoll()->io::Result<()>{
             match event.token() {
                 SERVER => {
                     match listener.accept() {
-                        Ok((mut stream, _)) => { // 这里是 mio::net::TcpStream
+                        Ok((mut stream, _)) => {
                             println!("新连接: {:?}", stream.peer_addr());
                             let token = Token(clients.len() + 1);
                             poll.registry().register(&mut stream, token, Interest::READABLE)?;
@@ -51,23 +54,32 @@ fn only_epoll()->io::Result<()>{
                     }
                 }
                 token => {
-                    let client_stream = clients.get_mut(&token).unwrap();
-                    let mut buffer = vec![0; 1024];
-                    match client_stream.read(&mut buffer) {
-                        Ok(0) => {
-                            // 连接已关闭
-                            println!("连接已关闭: {:?}", client_stream.peer_addr());
-                            clients.remove(&token);
-                        }
-                        Ok(n) => {
-                            if let Err(e) = client_stream.write_all(&buffer[..n]) {
-                                eprintln!("写入失败: {}", e);
-                                clients.remove(&token); // 处理写入失败时的连接移除
+                    // 获取客户端流
+                    if let Some(client_stream) = clients.get_mut(&token) {
+                        let mut buffer = vec![0; 1024];
+                        match client_stream.read(&mut buffer) {
+                            Ok(0) => {
+                                // 连接已关闭
+                                println!("连接已关闭: {:?}", client_stream.peer_addr());
+                                poll.registry().deregister(client_stream)?;
+                                clients.remove(&token);
                             }
-                        }
-                        Err(e) => {
-                            eprintln!("读取失败: {}", e);
-                            clients.remove(&token);
+                            Ok(n) => {
+                                // 将读取到的字节转换成字符串并打印
+                                let message = String::from_utf8_lossy(&buffer[..n]);
+                                println!("收到消息: {}", message);
+                                if let Err(e) = client_stream.write_all(&buffer[..n]) {
+                                    eprintln!("写入失败: {}", e);
+                                    poll.registry().deregister(client_stream)?;
+                                    clients.remove(&token); // 处理写入失败时的连接移除
+                                }
+                            }
+                            Err(e) => {
+                                // 读取失败，关闭连接
+                                eprintln!("读取失败: {}", e);
+                                poll.registry().deregister(client_stream)?;
+                                clients.remove(&token);
+                            }
                         }
                     }
                 }
