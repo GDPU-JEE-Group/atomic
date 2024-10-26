@@ -14,7 +14,7 @@ pub fn main() -> io::Result<()> {
 }
 
 /* 
-仅仅用epoll，
+仅仅用epoll
 */
 fn only_epoll() -> io::Result<()> {
     // 使用从配置中获取的 IP 和端口创建 SocketAddr
@@ -54,31 +54,45 @@ fn only_epoll() -> io::Result<()> {
                     }
                 }
                 token => {
-                    // 获取客户端流
-                    if let Some(client_stream) = clients.get_mut(&token) {
+                    // 提前从 `clients` 中移除连接，防止多次操作
+                    if let Some(mut client_stream) = clients.remove(&token) {
                         let mut buffer = vec![0; 1024];
                         match client_stream.read(&mut buffer) {
                             Ok(0) => {
                                 // 连接已关闭
                                 println!("连接已关闭: {:?}", client_stream.peer_addr());
-                                poll.registry().deregister(client_stream)?;
-                                clients.remove(&token);
+                                if let Err(e) = poll.registry().deregister(&mut client_stream) {
+                                    eprintln!("注销连接失败: {:?}", e);
+                                }
+                                // 彻底释放连接资源
+                                drop(client_stream);
                             }
                             Ok(n) => {
                                 // 将读取到的字节转换成字符串并打印
                                 let message = String::from_utf8_lossy(&buffer[..n]);
                                 println!("收到消息: {}", message);
+
+                                // 将消息发送回客户端
                                 if let Err(e) = client_stream.write_all(&buffer[..n]) {
                                     eprintln!("写入失败: {}", e);
-                                    poll.registry().deregister(client_stream)?;
-                                    clients.remove(&token); // 处理写入失败时的连接移除
+                                    if let Err(deg_err) = poll.registry().deregister(&mut client_stream) {
+                                        eprintln!("注销连接失败: {:?}", deg_err);
+                                    }
+                                    // 彻底释放连接资源
+                                    drop(client_stream);
+                                } else {
+                                    // 若写入成功，将连接重新加入 clients
+                                    clients.insert(token, client_stream);
                                 }
                             }
                             Err(e) => {
                                 // 读取失败，关闭连接
                                 eprintln!("读取失败: {}", e);
-                                poll.registry().deregister(client_stream)?;
-                                clients.remove(&token);
+                                if let Err(deg_err) = poll.registry().deregister(&mut client_stream) {
+                                    eprintln!("注销连接失败: {:?}", deg_err);
+                                }
+                                // 彻底释放连接资源
+                                drop(client_stream);
                             }
                         }
                     }
