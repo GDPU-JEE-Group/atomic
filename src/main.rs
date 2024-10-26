@@ -6,36 +6,35 @@ use std::time::Duration;
 use atomic::base::properties::Properties;
 use atomic::base::threadpool::ThreadPool;
 use atomic::util::log::Log;
-
+use atomic::app::server;
+use atomic::app::httpserver;
+use atomic::app::epollserver;
 fn main() {
-    // Parameter processing
+    // Properties Init()
     let env_args:Vec<String>=env::args().collect();
     if env_args.len() != 3 || env_args[1] != "-c" {
         eprintln!("Usage: {} -c <config_file_path>", env_args[0]);
         std::process::exit(1);
     }
-
     let config_path=env_args[2].as_str();
     Properties::init(config_path);
 
+    // Log Init()
     let log_path=PathBuf::from(Properties::get( "log.path", "./log"));
     println!("log_path:{}",Properties::get( "log.path", "./log"));
     println!("log_pathexists:{}",log_path.exists());
     // 初始化日志系统，设置最大日志池大小和最大缓冲区大小
     Log::init(100, 1024, log_path);
 
-    let pool=ThreadPool::new(4); 
-    for i in 0..10{
-        pool.execute(move ||{
-            sum(i);
-        });
-    }
+    // ThreadPool Init();
+
 
     // 测试不同级别的日志
     test_init();
 }
 
 pub fn test_init(){
+    // Log
     Log::d("MainModule", "This is a debug message.");
     Log::i("MainModule", "This is an info message.");
     Log::w("MainModule", "This is a warning message.");
@@ -44,7 +43,20 @@ pub fn test_init(){
     Properties::print();
     
     println!("Hello, world!");
-    thread::sleep(Duration::from_secs(2));
+    // thread::sleep(Duration::from_secs(2));
+
+    // ThreadPool Init
+    let pool=ThreadPool::new(Properties::get("server.thread_pool_nums", "4").parse::<usize>().unwrap()); 
+/*     for i in 0..10{
+        pool.execute(move ||{
+            sum(i);
+        });
+    } */
+
+    //
+    // httpserver::main();
+    epollserver::main();
+
 }
 
 fn sum(num:i32){

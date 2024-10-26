@@ -7,3 +7,4 @@ edition = "2021"
 chrono = "0.4"
 colored = "2.0"
 crossbeam-channel = "0.5"
+mio = { version = "1.0.2", features = ["os-poll","net"] }

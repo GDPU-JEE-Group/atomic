@@ -1,3 +1,11 @@
 https://course.rs/first-try/cargo.html
 https://rust-coding-guidelines.github.io/rust-coding-guidelines-zh/safe-guides/overview/why.html
 1. configmap,log,server,client
+
+ std::net是Rust标准库,std::net是同步的  
+tokio::net提供了与std::net几乎一致的封装，但它是异步的  
+https://blog.csdn.net/hope_wisdom/article/details/137201668
+
+https://rustwiki.org/zh-CN/rust-cookbook/web.html   
+
+https://ifaceless.github.io/2020/04/15/talent-plan-rust-network-programming-intro/
