@@ -4,7 +4,7 @@ use std::{
     net::SocketAddr,
 };
 use mio::{Events, Interest, Poll, Token};
-use mio::net::{TcpListener, TcpStream}; // 使用 mio 的 TcpStream
+use mio::net::{TcpListener, TcpStream};
 use crate::base::properties::Properties;
 
 const SERVER: Token = Token(0);
@@ -13,20 +13,16 @@ pub fn main() -> io::Result<()> {
     only_epoll()
 }
 
-/* 
-仅仅用epoll
-*/
 fn only_epoll() -> io::Result<()> {
-    // 使用从配置中获取的 IP 和端口创建 SocketAddr
     let addr: SocketAddr = format!(
         "{}:{}",
         Properties::get("server.ip", "127.0.0.1"),
         Properties::get("server.port", "8090")
     )
     .parse()
-    .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?; // 转换错误类型
+    .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
 
-    let mut listener = TcpListener::bind(addr)?; // 传递 SocketAddr
+    let mut listener = TcpListener::bind(addr)?;
     println!("服务器正在运行，监听 {}", addr);
 
     let mut poll = Poll::new()?;
@@ -36,7 +32,7 @@ fn only_epoll() -> io::Result<()> {
     let mut clients = HashMap::new();
 
     loop {
-        poll.poll(&mut events, None)?; // 等待事件
+        poll.poll(&mut events, None)?;
 
         for event in &events {
             match event.token() {
@@ -54,45 +50,30 @@ fn only_epoll() -> io::Result<()> {
                     }
                 }
                 token => {
-                    // 提前从 `clients` 中移除连接，防止多次操作
-                    if let Some(mut client_stream) = clients.remove(&token) {
+                    if let Some(mut client_stream) = clients.remove(&token) {  // 从 HashMap 中移除并获取所有权
                         let mut buffer = vec![0; 1024];
                         match client_stream.read(&mut buffer) {
                             Ok(0) => {
                                 // 连接已关闭
                                 println!("连接已关闭: {:?}", client_stream.peer_addr());
-                                if let Err(e) = poll.registry().deregister(&mut client_stream) {
-                                    eprintln!("注销连接失败: {:?}", e);
-                                }
-                                // 彻底释放连接资源
-                                drop(client_stream);
+                                // 处理断开连接
+                                handle_disconnect(client_stream, token, &mut poll, &mut clients);
                             }
                             Ok(n) => {
                                 // 将读取到的字节转换成字符串并打印
                                 let message = String::from_utf8_lossy(&buffer[..n]);
                                 println!("收到消息: {}", message);
-
-                                // 将消息发送回客户端
                                 if let Err(e) = client_stream.write_all(&buffer[..n]) {
                                     eprintln!("写入失败: {}", e);
-                                    if let Err(deg_err) = poll.registry().deregister(&mut client_stream) {
-                                        eprintln!("注销连接失败: {:?}", deg_err);
-                                    }
-                                    // 彻底释放连接资源
-                                    drop(client_stream);
-                                } else {
-                                    // 若写入成功，将连接重新加入 clients
-                                    clients.insert(token, client_stream);
+                                    // 处理写入失败
+                                    handle_disconnect(client_stream, token, &mut poll, &mut clients);
                                 }
                             }
                             Err(e) => {
                                 // 读取失败，关闭连接
                                 eprintln!("读取失败: {}", e);
-                                if let Err(deg_err) = poll.registry().deregister(&mut client_stream) {
-                                    eprintln!("注销连接失败: {:?}", deg_err);
-                                }
-                                // 彻底释放连接资源
-                                drop(client_stream);
+                                // 处理读取失败
+                                handle_disconnect(client_stream, token, &mut poll, &mut clients);
                             }
                         }
                     }
@@ -100,4 +81,19 @@ fn only_epoll() -> io::Result<()> {
             }
         }
     }
+}
+
+// 处理连接关闭和资源释放的函数
+fn handle_disconnect(
+    mut stream: TcpStream,  // 接受 TcpStream 的所有权并声明为可变
+    token: Token,
+    poll: &mut Poll,
+    clients: &mut HashMap<Token, TcpStream>,
+) {
+    // 尝试关闭连接
+    let _ = stream.shutdown(std::net::Shutdown::Both); // 忽略返回值
+    // 从 poll 中注销
+    let _ = poll.registry().deregister(&mut stream);  // 需要可变借用
+    // 从 clients 中移除
+    clients.remove(&token);
 }

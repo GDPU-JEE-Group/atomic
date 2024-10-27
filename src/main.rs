@@ -46,7 +46,7 @@ pub fn test_init(){
     // thread::sleep(Duration::from_secs(2));
 
     // ThreadPool Init
-    let pool=ThreadPool::new(Properties::get("server.thread_pool_nums", "4").parse::<usize>().unwrap()); 
+    // let pool=ThreadPool::new(Properties::get("server.thread_pool_nums", "4").parse::<usize>().unwrap()); 
 /*     for i in 0..10{
         pool.execute(move ||{
             sum(i);
